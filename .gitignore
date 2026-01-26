@@ -1,0 +1,32 @@
+# deps
+node_modules/
+
+# Env files (secrets)
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
+
+# Build output
+dist/
+build/
+out/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Test / coverage
+coverage/
+
+# Misc sensitive / local files
+cookies.txt

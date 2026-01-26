@@ -1,0 +1,23 @@
+{
+  "name": "one-trip-api",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@better-auth/expo": "^1.4.15",
+    "better-auth": "^1.4.10",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.3",
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "~19.1.10",
+    "drizzle-kit": "^0.31.8",
+    "typescript": "~5.9.2"
+  }
+}
