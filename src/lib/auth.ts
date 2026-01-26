@@ -24,13 +24,9 @@ export const auth = betterAuth({
   trustedOrigins: [
     ...allowedOrigins,
     "onetripapp://",
-    ...(process.env.NODE_ENV === "development"
-      ? [
-          "exp://", // Trust all Expo URLs (prefix matching)
-          "exp://**", // Trust all Expo URLs (wildcard matching)
-          "exp://192.168.*.*:*/**", // Trust 192.168.x.x IP range with any port and path
-        ]
-      : []),
+    "exp://", // Trust all Expo URLs (prefix matching)
+    "exp://**", // Trust all Expo URLs (wildcard matching)
+    "exp://192.168.*.*:*/**", // Trust 192.168.x.x IP range with any port and path
   ],
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -141,8 +137,8 @@ export const auth = betterAuth({
                 eq(invites.id, invite.id),
                 isNull(invites.acceptedAt),
                 isNull(invites.revokedAt),
-                gt(invites.expiresAt, sql`now()`)
-              )
+                gt(invites.expiresAt, sql`now()`),
+              ),
             )
             .returning({ id: invites.id });
 
@@ -182,7 +178,7 @@ export async function getCurrentUserFromHeaders(reqHeaders: Headers) {
 }
 
 export async function getCurrentUserIdOrNull(
-  reqHeaders: Headers
+  reqHeaders: Headers,
 ): Promise<string | null> {
   const session = await auth.api.getSession({ headers: reqHeaders });
   return session?.user?.id ?? null;
