@@ -1,13 +1,14 @@
-import { Hono } from "hono";
-import { getList, getLists } from "./services/lists.service";
-import { getMembers, inviteToGroup } from "./services/members.service";
-import { addItem, deleteItem, updateItem } from "./services/list-items.service";
-import { HTTPException } from "hono/http-exception";
-import { auth } from "./lib/auth";
-import db from "./lib/data";
-import { user } from "./db";
-import { eq } from "drizzle-orm";
-import { cors } from "hono/cors";
+import { Hono } from 'hono';
+import { getList, getLists } from './services/lists.service';
+import { getMembers, inviteToGroup } from './services/members.service';
+import { addItem, deleteItem, updateItem } from './services/list-items.service';
+import { HTTPException } from 'hono/http-exception';
+import { auth } from './lib/auth';
+import db from './lib/data';
+import { user } from './db';
+import { eq } from 'drizzle-orm';
+import { cors } from 'hono/cors';
+import { addStore } from './services/store.service';
 
 type AuthContext = {
   userId: string;
@@ -20,21 +21,21 @@ type Variables = { auth: AuthContext };
 
 const app = new Hono();
 const api = new Hono<{ Variables: Variables }>();
-const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
-  .split(",")
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
+  .split(',')
   .map((s) => s.trim())
   .filter(Boolean);
 
-if (process.env.NODE_ENV === "production" && allowedOrigins.length === 0) {
-  throw new Error("ALLOWED_ORIGINS must be set in production");
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+  throw new Error('ALLOWED_ORIGINS must be set in production');
 }
 
 app.use(
-  "/*",
+  '/*',
   cors({
     origin: allowedOrigins,
     credentials: true,
-  })
+  }),
 );
 
 app.onError((error, c) => {
@@ -42,28 +43,28 @@ app.onError((error, c) => {
     return c.json({ error: error.message }, error.status);
   }
   console.error(error);
-  return c.json({ error: "Internal server error" }, 500);
+  return c.json({ error: 'Internal server error' }, 500);
 });
 
-app.on(["POST", "GET"], "/auth/*", async (c) => {
+app.on(['POST', 'GET'], '/auth/*', async (c) => {
   return await auth.handler(c.req.raw);
 });
 
-app.get("/health", (c) => {
-  return c.json({ status: "ok" });
+app.get('/health', (c) => {
+  return c.json({ status: 'ok' });
 });
 
-app.get("/db-health", async (c) => {
+app.get('/db-health', async (c) => {
   try {
-    await db.execute("select 1 as ok");
-    return c.json({ status: "db-ok" });
+    await db.execute('select 1 as ok');
+    return c.json({ status: 'db-ok' });
   } catch (e: any) {
-    console.error("DB ERROR:", e);
-    return c.json({ status: "db-fail" }, 500);
+    console.error('DB ERROR:', e);
+    return c.json({ status: 'db-fail' }, 500);
   }
 });
 
-if (process.env.NODE_ENV === "development") {
+if (process.env.NODE_ENV === 'development') {
   app.use(async (c, next) => {
     const start = Date.now();
 
@@ -74,13 +75,13 @@ if (process.env.NODE_ENV === "development") {
   });
 }
 
-api.use("*", async (c, next) => {
+api.use('*', async (c, next) => {
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   });
 
   if (!session?.user) {
-    throw new HTTPException(401, { message: "Unauthorized" });
+    throw new HTTPException(401, { message: 'Unauthorized' });
   }
 
   const userId = session.user.id;
@@ -91,7 +92,7 @@ api.use("*", async (c, next) => {
     .where(eq(user.id, userId))
     .limit(1);
 
-  c.set("auth", {
+  c.set('auth', {
     userId: session.user.id,
     email: session.user.email,
     name: session.user.name ?? null,
@@ -101,15 +102,15 @@ api.use("*", async (c, next) => {
   await next();
 });
 
-api.get("/me", async (c) => {
+api.get('/me', async (c) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   return c.json({ session });
 });
 
-api.get("/lists", async (c) => {
-  const { userId, activeGroupId } = c.get("auth");
+api.get('/lists', async (c) => {
+  const { userId, activeGroupId } = c.get('auth');
   if (!activeGroupId) {
-    throw new HTTPException(400, { message: "No active group selected" });
+    throw new HTTPException(400, { message: 'No active group selected' });
   }
 
   const lists = await getLists(userId, activeGroupId);
@@ -117,11 +118,11 @@ api.get("/lists", async (c) => {
   return c.json(lists);
 });
 
-api.get("/list/:storeId", async (c) => {
-  const { userId, activeGroupId } = c.get("auth");
-  const storeId = Number(c.req.param("storeId"));
+api.get('/list/:storeId', async (c) => {
+  const { userId, activeGroupId } = c.get('auth');
+  const storeId = Number(c.req.param('storeId'));
   if (!activeGroupId) {
-    throw new HTTPException(400, { message: "No active group selected" });
+    throw new HTTPException(400, { message: 'No active group selected' });
   }
 
   const list = await getList(userId, storeId, activeGroupId);
@@ -129,24 +130,24 @@ api.get("/list/:storeId", async (c) => {
   return c.json(list);
 });
 
-api.get("/members", async (c) => {
-  const { activeGroupId } = c.get("auth");
+api.get('/members', async (c) => {
+  const { activeGroupId } = c.get('auth');
   if (!activeGroupId) {
-    throw new HTTPException(400, { message: "No active group selected" });
+    throw new HTTPException(400, { message: 'No active group selected' });
   }
   const members = await getMembers(activeGroupId);
 
   return c.json(members);
 });
 
-api.post("/stores/:storeId/items", async (c) => {
-  const { userId } = c.get("auth");
-  const storeId = Number(c.req.param("storeId"));
+api.post('/stores/:storeId/items', async (c) => {
+  const { userId } = c.get('auth');
+  const storeId = Number(c.req.param('storeId'));
   const { name } = await c.req.json();
 
-  if (!name || typeof name !== "string") {
+  if (!name || typeof name !== 'string') {
     throw new HTTPException(400, {
-      message: "Name is required and must be a string",
+      message: 'Name is required and must be a string',
     });
   }
 
@@ -154,57 +155,73 @@ api.post("/stores/:storeId/items", async (c) => {
   return c.json({ success: true, result }, 201);
 });
 
-api.patch("/stores/:storeId/item/:itemId", async (c) => {
-  const { userId } = c.get("auth");
-  const storeId = Number(c.req.param("storeId"));
-  const itemId = Number(c.req.param("itemId"));
+api.patch('/stores/:storeId/item/:itemId', async (c) => {
+  const { userId } = c.get('auth');
+  const storeId = Number(c.req.param('storeId'));
+  const itemId = Number(c.req.param('itemId'));
   const { purchased } = await c.req.json();
 
   if (!Number.isFinite(itemId)) {
-    throw new HTTPException(400, { message: "Invalid item id" });
+    throw new HTTPException(400, { message: 'Invalid item id' });
   }
-  if (typeof purchased !== "boolean") {
-    throw new HTTPException(400, { message: "purchased must be a boolean" });
+  if (typeof purchased !== 'boolean') {
+    throw new HTTPException(400, { message: 'purchased must be a boolean' });
   }
 
   const result = await updateItem(itemId, storeId, purchased, userId);
   return c.json({ success: true, result });
 });
 
-api.delete("/stores/:storeId/item/:itemId", async (c) => {
-  const { userId } = c.get("auth");
-  const storeId = Number(c.req.param("storeId"));
-  const itemId = Number(c.req.param("itemId"));
+api.delete('/stores/:storeId/item/:itemId', async (c) => {
+  const { userId } = c.get('auth');
+  const storeId = Number(c.req.param('storeId'));
+  const itemId = Number(c.req.param('itemId'));
 
   if (!Number.isFinite(itemId)) {
-    throw new HTTPException(400, { message: "Invalid item id" });
+    throw new HTTPException(400, { message: 'Invalid item id' });
   }
 
   const result = await deleteItem(itemId, storeId, userId);
   return c.json({ success: true, result });
 });
 
-api.post("/invite", async (c) => {
-  const { userId, activeGroupId } = c.get("auth");
+api.post('/stores', async (c) => {
+  const { userId, activeGroupId } = c.get('auth');
+  const groupId = Number(activeGroupId);
+
+  const body = await c.req.json().catch(() => {
+    throw new HTTPException(400, { message: 'Invalid JSON body' });
+  });
+  const name = body?.name;
+  if (typeof name !== 'string') {
+    throw new HTTPException(400, { message: 'Name must be a string' });
+  }
+
+  const result = await addStore(name, groupId, userId);
+  return c.json({ success: true, result }, 201);
+});
+
+api.post('/invite', async (c) => {
+  const { userId, activeGroupId } = c.get('auth');
   const body = await c.req.json();
   const email = body?.email;
 
   if (!activeGroupId) {
-    throw new HTTPException(400, { message: "No active group selected" });
+    throw new HTTPException(400, { message: 'No active group selected' });
   }
 
-  if (typeof email !== "string" || !email.trim()) {
-    throw new HTTPException(400, { message: "email is required" });
+  if (typeof email !== 'string' || !email.trim()) {
+    throw new HTTPException(400, { message: 'email is required' });
   }
 
   const result = await inviteToGroup(email, userId, activeGroupId);
   return c.json({ success: true, result });
 });
 
-app.route("/api", api);
+app.route('/api', api);
 
 export default {
   port: Number(process.env.PORT ?? 3000),
-  hostname: "0.0.0.0",
+  hostname: '0.0.0.0',
   fetch: app.fetch,
 };
