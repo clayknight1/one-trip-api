@@ -42,4 +42,4 @@ npm run dev
 
 ---
 
-**Notes:** This is a work-in-progress project demonstrating clean API architecture, service layer patterns, and database relationships.
+**Notes:** This is a work-in-progress
