@@ -1,4 +1,4 @@
-# Shopping List API
+# One Trip API
 
 A full-stack shopping list management API built with Hono, TypeScript, and Drizzle ORM. Supports multi-user collaboration with store-based access control.
 
